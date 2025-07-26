@@ -3,18 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Xem Phim &amp; Call Cùng Nhau</title>
+  <title>Xem Phim & Chat Cùng Nhau</title>
   <style>
     body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 1rem; }
     #lobby, #room { margin-top: 2rem; }
-    #chat, #members, #callMembers {
+    #chat {
       height:200px; border:1px solid #ccc; overflow-y:auto;
       padding:.5rem; background:#f9f9f9; margin-bottom:.5rem;
-    }
-    .participant { display:flex; justify-content:space-between; align-items:center; margin:.2rem 0; }
-    .participant button { margin-left:.5rem; }
-    #audioStreams audio {
-      display:block; width:100%; margin-bottom:.5rem;
     }
     input, button, select { padding:.5rem; margin:.2rem; }
     video { display:block; width:100%; margin-top:1rem; }
@@ -22,7 +17,7 @@
   </style>
 </head>
 <body>
-  <h1>Xem Phim &amp; Call Cùng Nhau</h1>
+  <h1>Xem Phim & Chat Cùng Nhau</h1>
 
   <!-- Lobby -->
   <div id="lobby">
@@ -57,23 +52,6 @@
     <!-- Room Members -->
     <h3>Thành viên phòng</h3>
     <div id="members"></div>
-
-    <!-- Call Controls -->
-    <h3>Voice Call</h3>
-    <button id="btnJoinCall">Tham gia Call</button>
-    <button id="btnLeaveCall" disabled>Rời Call</button>
-    <div id="callControls" class="hidden">
-      <button id="btnMic">Mic: On</button>
-      <button id="btnSpeaker">Speaker: On</button>
-    </div>
-
-    <!-- Call Members List -->
-    <h4>Người đang gọi</h4>
-    <div id="callMembers"></div>
-
-    <!-- Audio Streams -->
-    <h4>Audio Streams</h4>
-    <div id="audioStreams"></div>
   </div>
 
   <script type="module" src="app.js"></script>
