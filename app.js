@@ -1,13 +1,9 @@
 // 1) Import Firebase module qua CDN
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import {
-  getDatabase,
-  ref,
-  push,
-  onChildAdded,
-  onValue
+  getDatabase, ref, set, push, onChildAdded, onValue
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
+import { getAnalytics }  from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
 
 // 2) Cấu hình Firebase (thay bằng config của bạn)
 const firebaseConfig = {
@@ -39,43 +35,51 @@ const chat       = document.getElementById('chat');
 const chatInput  = document.getElementById('chatInput');
 const btnSend    = document.getElementById('btnSend');
 
-let nickname, roomId;
+let nickname, roomId, isOwner = false;
 
-// 5) Lấy roomId từ URL nếu có
+// 5) Helper: lấy roomId từ URL
 function getRoomIdFromURL() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('room');
+  return new URLSearchParams(window.location.search).get('room');
 }
 
-// 6) Tạo phòng mới
+// 6) Tạo phòng mới (ghi owner vào DB)
 btnCreate.onclick = () => {
   nickname = nickInput.value.trim();
   if (!nickname) return alert('Vui lòng nhập nickname!');
   roomId = Math.random().toString(36).substr(2, 8);
   history.replaceState(null, '', '?room=' + roomId);
-  enterRoom();
+  // Ghi owner
+  set(ref(db, `rooms/${roomId}/owner`), nickname)
+    .then(() => enterRoom(true))
+    .catch(err => console.error(err));
 };
 
-// 7) Tham gia phòng
+// 7) Tham gia phòng (đọc owner)
 btnJoin.onclick = () => {
   nickname = nickInput.value.trim();
   const id = roomInput.value.trim();
   if (!nickname || !id) return alert('Nhập nickname và mã phòng!');
   roomId = id;
   history.replaceState(null, '', '?room=' + roomId);
-  enterRoom();
+  onValue(ref(db, `rooms/${roomId}/owner`), snap => {
+    const ownerName = snap.val();
+    if (!ownerName) {
+      alert('Phòng không tồn tại hoặc chưa được tạo.');
+      return;
+    }
+    enterRoom(ownerName === nickname);
+  }, { onlyOnce: true });
 };
 
-// 8) Vào giao diện phòng
-function enterRoom() {
+// 8) Hàm khởi chạy giao diện phòng
+function enterRoom(ownerFlag) {
+  isOwner = ownerFlag;
   lobby.style.display   = 'none';
   roomDiv.style.display = 'block';
   roomDisp.textContent  = roomId;
 
-  const chatRef   = ref(db, `rooms/${roomId}/chat`);
-  const eventsRef = ref(db, `rooms/${roomId}/video/events`);
-
-  // 8a) Chat: lắng nghe tin nhắn mới
+  // Chat setup
+  const chatRef = ref(db, `rooms/${roomId}/chat`);
   onChildAdded(chatRef, snap => {
     const { user, text } = snap.val();
     const p = document.createElement('p');
@@ -83,47 +87,38 @@ function enterRoom() {
     chat.appendChild(p);
     chat.scrollTop = chat.scrollHeight;
   });
+  btnSend.onclick = () => {
+    const txt = chatInput.value.trim();
+    if (!txt) return;
+    push(chatRef, { user: nickname, text: txt, timestamp: Date.now() });
+    chatInput.value = '';
+  };
 
-  // 8b) Video sync: lắng nghe chỉ event mới
+  // Video sync setup (push events & listen)
+  const eventsRef = ref(db, `rooms/${roomId}/video/events`);
   onChildAdded(eventsRef, snap => {
     const { type, user, time } = snap.val();
-    if (user === nickname) return;
+    if (user === nickname) return;  // ignore chính mình
     video.currentTime = time;
     if (type === 'play')  video.play();
     if (type === 'pause') video.pause();
     // seek chỉ cần đổi time
   });
 
-  // 8c) Gửi chat
-  btnSend.onclick = () => {
-    const txt = chatInput.value.trim();
-    if (!txt) return;
-    push(chatRef, {
-      user: nickname,
-      text: txt,
-      timestamp: Date.now()
-    });
-    chatInput.value = '';
-  };
-
-  // 8d) Gửi sự kiện video khi user thao tác
-  function emitVideoEvent(type) {
-    push(eventsRef, {
-      type,
-      user: nickname,
-      time: video.currentTime,
-      ts: Date.now()
-    });
+  // Chỉ owner được điều khiển
+  if (isOwner) {
+    video.controls = true;
+    video.addEventListener('play',  () => push(eventsRef, { type: 'play',  user: nickname, time: video.currentTime, ts: Date.now() }));
+    video.addEventListener('pause', () => push(eventsRef, { type: 'pause', user: nickname, time: video.currentTime, ts: Date.now() }));
+    video.addEventListener('seeked',() => push(eventsRef, { type: 'seek',  user: nickname, time: video.currentTime, ts: Date.now() }));
+  } else {
+    // Non-owner: tắt controls, không thể thao tác
+    video.controls = false;
   }
-  video.addEventListener('play',  () => emitVideoEvent('play'));
-  video.addEventListener('pause', () => emitVideoEvent('pause'));
-  video.addEventListener('seeked',() => emitVideoEvent('seek'));
 }
 
-// 9) Nếu URL đã có room, chỉ cần nhập nickname rồi bấm “Vào phòng”
+// 9) Nếu URL có room, auto điền ô join
 window.addEventListener('load', () => {
   const rid = getRoomIdFromURL();
-  if (rid) {
-    roomInput.value = rid;
-  }
+  if (rid) roomInput.value = rid;
 });
