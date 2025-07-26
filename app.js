@@ -1,7 +1,13 @@
 // 1) Import Firebase module qua CDN
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded, onValue, set } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
-import { getAnalytics }  from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
+import {
+  getDatabase,
+  ref,
+  push,
+  onChildAdded,
+  onValue
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
 
 // 2) Cấu hình Firebase (thay bằng config của bạn)
 const firebaseConfig = {
@@ -46,7 +52,6 @@ btnCreate.onclick = () => {
   nickname = nickInput.value.trim();
   if (!nickname) return alert('Vui lòng nhập nickname!');
   roomId = Math.random().toString(36).substr(2, 8);
-  // Cập nhật URL
   history.replaceState(null, '', '?room=' + roomId);
   enterRoom();
 };
@@ -67,10 +72,11 @@ function enterRoom() {
   roomDiv.style.display = 'block';
   roomDisp.textContent  = roomId;
 
-  const roomRef = ref(db, `rooms/${roomId}`);
+  const chatRef   = ref(db, `rooms/${roomId}/chat`);
+  const eventsRef = ref(db, `rooms/${roomId}/video/events`);
 
   // 8a) Chat: lắng nghe tin nhắn mới
-  onChildAdded(ref(db, `rooms/${roomId}/chat`), snap => {
+  onChildAdded(chatRef, snap => {
     const { user, text } = snap.val();
     const p = document.createElement('p');
     p.innerHTML = `<strong>${user}:</strong> ${text}`;
@@ -78,23 +84,21 @@ function enterRoom() {
     chat.scrollTop = chat.scrollHeight;
   });
 
-  // 8b) Video sync: lắng nghe play/pause/seek
-  ['play','pause','seek'].forEach(evt => {
-    onValue(ref(db, `rooms/${roomId}/video/${evt}`), snap => {
-      const data = snap.val();
-      if (!data || data.user === nickname) return;
-      video.currentTime = data.time;
-      if (evt === 'play')  video.play();
-      if (evt === 'pause') video.pause();
-      // seek thì chỉ đổi time
-    });
+  // 8b) Video sync: lắng nghe chỉ event mới
+  onChildAdded(eventsRef, snap => {
+    const { type, user, time } = snap.val();
+    if (user === nickname) return;
+    video.currentTime = time;
+    if (type === 'play')  video.play();
+    if (type === 'pause') video.pause();
+    // seek chỉ cần đổi time
   });
 
   // 8c) Gửi chat
   btnSend.onclick = () => {
     const txt = chatInput.value.trim();
     if (!txt) return;
-    push(ref(db, `rooms/${roomId}/chat`), {
+    push(chatRef, {
       user: nickname,
       text: txt,
       timestamp: Date.now()
@@ -103,24 +107,17 @@ function enterRoom() {
   };
 
   // 8d) Gửi sự kiện video khi user thao tác
-  video.addEventListener('play', () => {
-    set(ref(db, `rooms/${roomId}/video/play`), {
+  function emitVideoEvent(type) {
+    push(eventsRef, {
+      type,
       user: nickname,
-      time: video.currentTime
+      time: video.currentTime,
+      ts: Date.now()
     });
-  });
-  video.addEventListener('pause', () => {
-    set(ref(db, `rooms/${roomId}/video/pause`), {
-      user: nickname,
-      time: video.currentTime
-    });
-  });
-  video.addEventListener('seeked', () => {
-    set(ref(db, `rooms/${roomId}/video/seek`), {
-      user: nickname,
-      time: video.currentTime
-    });
-  });
+  }
+  video.addEventListener('play',  () => emitVideoEvent('play'));
+  video.addEventListener('pause', () => emitVideoEvent('pause'));
+  video.addEventListener('seeked',() => emitVideoEvent('seek'));
 }
 
 // 9) Nếu URL đã có room, chỉ cần nhập nickname rồi bấm “Vào phòng”
