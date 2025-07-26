@@ -23,18 +23,18 @@ const analytics = getAnalytics(app);
 const db        = getDatabase(app);
 
 // 4) DOM elements
-const lobby      = document.getElementById('lobby');
-const roomDiv    = document.getElementById('room');
-const roomDisp   = document.getElementById('roomIdDisplay');
-const nickInput  = document.getElementById('nickname');
-const roomInput  = document.getElementById('roomIdInput');
-const btnCreate  = document.getElementById('btnCreate');
-const btnJoin    = document.getElementById('btnJoin');
+const lobby        = document.getElementById('lobby');
+const roomDiv      = document.getElementById('room');
+const roomDisp     = document.getElementById('roomIdDisplay');
+const nickInput    = document.getElementById('nickname');
+const roomInput    = document.getElementById('roomIdInput');
+const btnCreate    = document.getElementById('btnCreate');
+const btnJoin      = document.getElementById('btnJoin');
 
-const video      = document.getElementById('videoPlayer');
-const chat       = document.getElementById('chat');
-const chatInput  = document.getElementById('chatInput');
-const btnSend    = document.getElementById('btnSend');
+const video        = document.getElementById('videoPlayer');
+const chat         = document.getElementById('chat');
+const chatInput    = document.getElementById('chatInput');
+const btnSend      = document.getElementById('btnSend');
 
 const btnJoinCall  = document.getElementById('btnJoinCall');
 const btnLeaveCall = document.getElementById('btnLeaveCall');
@@ -51,22 +51,25 @@ const peers = {};               // { peerId: { pc, audioEl } }
 const clientId = Math.random().toString(36).substr(2,8);
 
 // Helper: lấy roomId từ URL
-function getRoomIdFromURL(){
+function getRoomIdFromURL() {
   return new URLSearchParams(window.location.search).get('room');
 }
 
-// Tạo phòng: ghi owner
+// Tạo phòng: set isOwner = true rồi ghi owner vào DB
 btnCreate.onclick = () => {
   nickname = nickInput.value.trim();
   if (!nickname) return alert('Nhập nickname!');
   roomId = Math.random().toString(36).substr(2, 8);
   history.replaceState(null, '', '?room=' + roomId);
+  // Đánh dấu bạn là chủ phòng
+  isOwner = true;
+  // Ghi owner vào DB
   set(ref(db, `rooms/${roomId}/owner`), nickname)
     .then(() => enterRoom())
     .catch(console.error);
 };
 
-// Join phòng: đọc owner
+// Join phòng: đọc owner, so sánh với nickname
 btnJoin.onclick = () => {
   nickname = nickInput.value.trim();
   const id = roomInput.value.trim();
@@ -75,14 +78,17 @@ btnJoin.onclick = () => {
   history.replaceState(null, '', '?room=' + roomId);
   onValue(ref(db, `rooms/${roomId}/owner`), snap => {
     const ownerName = snap.val();
-    if (!ownerName) return alert('Phòng không tồn tại');
+    if (!ownerName) {
+      alert('Phòng không tồn tại');
+      return;
+    }
     isOwner = (ownerName === nickname);
     enterRoom();
   }, { onlyOnce: true });
 };
 
-// Vào Room: chat, video, call
-function enterRoom(){
+// Vào Room: thiết lập chat, video, call
+function enterRoom() {
   lobby.style.display   = 'none';
   roomDiv.style.display = 'block';
   roomDisp.textContent  = roomId;
@@ -130,7 +136,6 @@ function enterRoom(){
 
   // --- Members list & Kick/Mute ---
   const membersRef = ref(db, `rooms/${roomId}/members`);
-  // Khi join room, thêm chính mình
   set(ref(db, `rooms/${roomId}/members/${clientId}`), {
     user: nickname,
     muted: false,
@@ -163,18 +168,17 @@ function enterRoom(){
   onChildAdded(sigRef, snap => handleSignal(snap.val()));
 
   // --- Join/Leave Call ---
-  btnJoinCall.onclick = joinCall;
+  btnJoinCall.onclick  = joinCall;
   btnLeaveCall.onclick = leaveCall;
 }
 
-// Join Call: getUserMedia + tạo PeerConnections
-async function joinCall(){
+// Join Call: lấy mic và khởi tạo PeerConnections
+async function joinCall() {
   localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   btnJoinCall.disabled = true;
   btnLeaveCall.disabled = false;
   callControls.style.display = 'block';
 
-  // Tạo offer tới mỗi peer đã join trước
   const membersSnap = await ref(db, `rooms/${roomId}/members`).get();
   const members = membersSnap.val() || {};
   for (const peerId of Object.keys(members)) {
@@ -183,8 +187,8 @@ async function joinCall(){
   }
 }
 
-// Leave Call: đóng PeerConnections
-function leaveCall(){
+// Leave Call: đóng kết nối
+function leaveCall() {
   Object.values(peers).forEach(p => {
     p.pc.close();
     p.audioEl.remove();
@@ -197,7 +201,7 @@ function leaveCall(){
   callControls.style.display = 'none';
 }
 
-// Mic mute/unmute
+// Mic on/off
 btnMic.onclick = () => {
   if (!localStream) return;
   const track = localStream.getAudioTracks()[0];
@@ -205,7 +209,7 @@ btnMic.onclick = () => {
   btnMic.textContent = `Mic: ${track.enabled ? 'On' : 'Off'}`;
 };
 
-// Speaker mute/unmute
+// Speaker on/off
 btnSpeaker.onclick = () => {
   Object.values(peers).forEach(p => {
     p.audioEl.muted = !p.audioEl.muted;
@@ -215,12 +219,11 @@ btnSpeaker.onclick = () => {
 };
 
 // Tạo RTCPeerConnection và handle Offer/Answer/ICE
-function createPeerConnection(peerId, isOffer){
+function createPeerConnection(peerId, isOffer) {
   if (peers[peerId]) return;
   const pc = new RTCPeerConnection();
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
-  // Khi có stream từ remote
   const audioEl = document.createElement('audio');
   audioEl.autoplay = true;
   pc.ontrack = ev => {
@@ -229,7 +232,6 @@ function createPeerConnection(peerId, isOffer){
     document.body.append(audioEl);
   };
 
-  // ICE candidate
   pc.onicecandidate = ev => {
     if (ev.candidate) {
       push(ref(db, `rooms/${roomId}/webrtc`), {
@@ -242,7 +244,6 @@ function createPeerConnection(peerId, isOffer){
 
   peers[peerId] = { pc, audioEl };
 
-  // Offer flow
   if (isOffer) {
     pc.createOffer().then(offer => {
       pc.setLocalDescription(offer);
@@ -256,7 +257,7 @@ function createPeerConnection(peerId, isOffer){
 }
 
 // Xử lý signaling messages
-async function handleSignal(msg){
+async function handleSignal(msg) {
   const { from, to, sdp, candidate } = msg;
   if (to !== clientId) return;
   if (!peers[from]) createPeerConnection(from, false);
@@ -278,7 +279,7 @@ async function handleSignal(msg){
   }
 }
 
-// Nếu URL có room, điền sẵn vào ô join
+// Auto điền room ID nếu URL có ?room=
 window.addEventListener('load', () => {
   const rid = getRoomIdFromURL();
   if (rid) roomInput.value = rid;
