@@ -2,20 +2,20 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import {
   getDatabase, ref, set, push, onChildAdded, onChildChanged,
-  onChildRemoved, onValue, remove
+  onChildRemoved, onValue, remove, get
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
-import { getAnalytics }  from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
 
-// 2) Thay bằng config Firebase của bạn
+// 2) Config Firebase (thay bằng yours)
 const firebaseConfig = {
-  apiKey: "AIzaSyBvhRRIP3zyPL6htL2fgSAAhks5y6EJB7Y",
-  authDomain: "rwparty-24391.firebaseapp.com",
-  databaseURL: "https://rwparty-24391-default-rtdb.firebaseio.com",
-  projectId: "rwparty-24391",
-  storageBucket: "rwparty-24391.appspot.com",
-  messagingSenderId: "281506397324",
-  appId: "1:281506397324:web:0c5af5bdbb7eeca0588fa9",
-  measurementId: "G-HX95ZF61BE"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
+  measurementId: "YOUR_MEASUREMENT_ID"
 };
 
 // 3) Khởi tạo Firebase
@@ -56,37 +56,41 @@ function getRoomIdFromURL() {
   return new URLSearchParams(window.location.search).get('room');
 }
 
-// Tạo phòng: set isOwner = true rồi ghi owner vào DB
+// Tạo phòng: đánh dấu owner, xoá cũ, ghi owner, rồi enter
 btnCreate.onclick = () => {
   nickname = nickInput.value.trim();
   if (!nickname) return alert('Nhập nickname!');
   roomId = Math.random().toString(36).substr(2, 8);
   history.replaceState(null, '', '?room=' + roomId);
   isOwner = true;
+  // Xoá toàn bộ data cũ của phòng (nếu có)
+  remove(ref(db, `rooms/${roomId}`)).catch(() => {});
+  // Ghi owner
   set(ref(db, `rooms/${roomId}/owner`), nickname)
     .then(() => enterRoom())
     .catch(console.error);
 };
 
-// Join phòng: đọc owner để biết isOwner
+// Join phòng: xoá signaling cũ, đọc owner, enter
 btnJoin.onclick = () => {
   nickname = nickInput.value.trim();
   const id = roomInput.value.trim();
   if (!nickname || !id) return alert('Nhập nickname và mã phòng!');
   roomId = id;
   history.replaceState(null, '', '?room=' + roomId);
-  onValue(ref(db, `rooms/${roomId}/owner`), snap => {
-    const ownerName = snap.val();
-    if (!ownerName) {
-      alert('Phòng không tồn tại');
-      return;
-    }
-    isOwner = (ownerName === nickname);
-    enterRoom();
-  }, { onlyOnce: true });
+  // Clear signaling cũ
+  remove(ref(db, `rooms/${roomId}/webrtc`)).catch(() => {});
+  get(ref(db, `rooms/${roomId}/owner`))
+    .then(snap => {
+      const ownerName = snap.val();
+      if (!ownerName) return alert('Phòng không tồn tại');
+      isOwner = (ownerName === nickname);
+      enterRoom();
+    })
+    .catch(console.error);
 };
 
-// Vào Room: thiết lập chat, video, members, call
+// Vào Room: setup chat, video sync, members, call
 function enterRoom() {
   lobby.style.display   = 'none';
   roomDiv.style.display = 'block';
@@ -135,117 +139,122 @@ function enterRoom() {
 
   // --- Members list & Kick/Mute ---
   const membersRef = ref(db, `rooms/${roomId}/members`);
-  // Khi join, thêm chính mình
+  // Thêm bản thân
   set(ref(db, `rooms/${roomId}/members/${clientId}`), {
     user: nickname,
     muted: false,
     joined: Date.now()
   });
-  // Kick: khi owner remove node, reload client
+  // Khi bị kick (node bị xoá)
   onChildRemoved(membersRef, snap => {
     if (snap.key === clientId) {
       alert('Bạn đã bị kick khỏi phòng!');
       window.location.reload();
     }
   });
-  // Mute: khi flag muted của chính bạn thay đổi, bật/tắt mic
+  // Khi owner mute/unmute bạn
   onChildChanged(membersRef, snap => {
     if (snap.key === clientId && localStream) {
       const muted = snap.val().muted;
       localStream.getAudioTracks()[0].enabled = !muted;
-      btnMic.textContent = `Mic: ${muted ? 'Off' : 'On'}`;
+      btnMic.textContent = `Mic: ${muted?'Off':'On'}`;
     }
   });
-  // Build UI danh sách members
+  // Hiển thị danh sách members
   onValue(membersRef, snap => {
     callMembersDiv.innerHTML = '';
     const data = snap.val() || {};
-    Object.entries(data).forEach(([id, obj]) => {
+    for (let [id,obj] of Object.entries(data)) {
       const div = document.createElement('div');
-      div.textContent = obj.user + (id === clientId ? ' (Bạn)' : '');
+      div.textContent = obj.user + (id===clientId?' (Bạn)':'');
       if (obj.muted) div.style.opacity = 0.5;
-      if (isOwner && id !== clientId) {
+      if (isOwner && id!==clientId) {
         const btnMute = document.createElement('button');
-        btnMute.textContent = obj.muted ? 'Unmute' : 'Mute';
+        btnMute.textContent = obj.muted?'Unmute':'Mute';
         btnMute.onclick = () =>
-          set(ref(db, `rooms/${roomId}/members/${id}/muted`), !obj.muted);
+          set(ref(db,`rooms/${roomId}/members/${id}/muted`), !obj.muted);
         const btnKick = document.createElement('button');
         btnKick.textContent = 'Kick';
         btnKick.onclick = () =>
-          remove(ref(db, `rooms/${roomId}/members/${id}`));
+          remove(ref(db,`rooms/${roomId}/members/${id}`));
         div.append(' ', btnMute, ' ', btnKick);
       }
       callMembersDiv.appendChild(div);
-    });
+    }
   });
 
-  // --- WebRTC Signaling ---
+  // --- WebRTC Signaling & ICE ---
   const sigRef = ref(db, `rooms/${roomId}/webrtc`);
   onChildAdded(sigRef, snap => handleSignal(snap.val()));
+
+  // Khi có member mới join, nếu bạn đang trong call, tạo offer
+  onChildAdded(membersRef, snap => {
+    const peerId = snap.key;
+    if (peerId!==clientId && localStream) {
+      createPeerConnection(peerId, true);
+    }
+  });
 
   // --- Join/Leave Call ---
   btnJoinCall.onclick  = joinCall;
   btnLeaveCall.onclick = leaveCall;
 }
 
-// Join Call: lấy mic và khởi tạo PeerConnections
+// Join Call: getUserMedia + mesh connect
 async function joinCall() {
   localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   btnJoinCall.disabled = true;
   btnLeaveCall.disabled = false;
   callControls.style.display = 'block';
 
-  // Tạo offer tới mỗi peer đã join trước
-  const membersSnap = await ref(db, `rooms/${roomId}/members`).get();
-  const members = membersSnap.val() || {};
-  for (const peerId of Object.keys(members)) {
-    if (peerId === clientId) continue;
+  // Tạo offer cho tất cả peer đã có
+  const membersSnap = await get(ref(db, `rooms/${roomId}/members`));
+  for (let peerId of Object.keys(membersSnap.val()||{})) {
+    if (peerId===clientId) continue;
     createPeerConnection(peerId, true);
   }
 }
 
-// Leave Call: đóng tất cả kết nối
+// Leave Call: close all
 function leaveCall() {
-  Object.values(peers).forEach(p => {
-    p.pc.close();
-    p.audioEl.remove();
-  });
-  for (const k in peers) delete peers[k];
-  localStream.getTracks().forEach(t => t.stop());
+  for (let k in peers) {
+    peers[k].pc.close();
+    peers[k].audioEl.remove();
+    delete peers[k];
+  }
+  localStream.getTracks().forEach(t=>t.stop());
   localStream = null;
   btnJoinCall.disabled = false;
   btnLeaveCall.disabled = true;
   callControls.style.display = 'none';
 }
 
-// Mic on/off local
-btnMic.onclick = () => {
+// Mic / Speaker toggle
+btnMic.onclick = ()=>{
   if (!localStream) return;
   const track = localStream.getAudioTracks()[0];
   track.enabled = !track.enabled;
-  btnMic.textContent = `Mic: ${track.enabled ? 'On' : 'Off'}`;
+  btnMic.textContent = `Mic: ${track.enabled?'On':'Off'}`;
 };
-
-// Speaker on/off remote
-btnSpeaker.onclick = () => {
-  Object.values(peers).forEach(p => {
+btnSpeaker.onclick = ()=>{
+  for (let p of Object.values(peers)) {
     p.audioEl.muted = !p.audioEl.muted;
-  });
+  }
   const muted = peers[Object.keys(peers)[0]]?.audioEl.muted;
-  btnSpeaker.textContent = `Speaker: ${muted ? 'Off' : 'On'}`;
+  btnSpeaker.textContent = `Speaker: ${muted?'Off':'On'}`;
 };
 
-// Tạo RTCPeerConnection với STUN server, handle Offer/Answer/ICE
+// Tạo RTCPeerConnection
 function createPeerConnection(peerId, isOffer) {
   if (peers[peerId]) return;
   const pc = new RTCPeerConnection({
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    iceServers: [{ urls:'stun:stun.l.google.com:19302' }]
   });
-  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  localStream.getTracks().forEach(t=>pc.addTrack(t, localStream));
 
   const audioEl = document.createElement('audio');
   audioEl.autoplay = true;
-  audioEl.muted = false;  // đảm bảo không tắt
+  audioEl.muted = false;
   pc.ontrack = ev => {
     audioEl.srcObject = ev.streams[0];
     audioEl.style.display = 'block';
@@ -254,7 +263,7 @@ function createPeerConnection(peerId, isOffer) {
 
   pc.onicecandidate = ev => {
     if (ev.candidate) {
-      push(ref(db, `rooms/${roomId}/webrtc`), {
+      push(ref(db,`rooms/${roomId}/webrtc`), {
         from: clientId,
         to: peerId,
         candidate: ev.candidate
@@ -265,18 +274,18 @@ function createPeerConnection(peerId, isOffer) {
   peers[peerId] = { pc, audioEl };
 
   if (isOffer) {
-    pc.createOffer().then(offer => {
-      pc.setLocalDescription(offer);
-      push(ref(db, `rooms/${roomId}/webrtc`), {
+    pc.createOffer().then(o=>{
+      pc.setLocalDescription(o);
+      push(ref(db,`rooms/${roomId}/webrtc`), {
         from: clientId,
         to: peerId,
-        sdp: offer
+        sdp: o
       });
     });
   }
 }
 
-// Xử lý signaling messages
+// Xử lý signaling
 async function handleSignal(msg) {
   const { from, to, sdp, candidate } = msg;
   if (to !== clientId) return;
@@ -285,12 +294,12 @@ async function handleSignal(msg) {
   if (sdp) {
     await pc.setRemoteDescription(sdp);
     if (sdp.type === 'offer') {
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      push(ref(db, `rooms/${roomId}/webrtc`), {
+      const ans = await pc.createAnswer();
+      await pc.setLocalDescription(ans);
+      push(ref(db,`rooms/${roomId}/webrtc`), {
         from: clientId,
         to: from,
-        sdp: answer
+        sdp: ans
       });
     }
   }
@@ -299,8 +308,8 @@ async function handleSignal(msg) {
   }
 }
 
-// part 3
-window.addEventListener('load', () => {
+// Auto điền room nếu URL có ?room=
+window.addEventListener('load', ()=>{
   const rid = getRoomIdFromURL();
   if (rid) roomInput.value = rid;
 });
