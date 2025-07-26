@@ -1,0 +1,1 @@
+let search2=new Vue({el:"#search2",data:{username:""},methods:{coder:function(){if(this.username){document.location.href=`https://rwstudio.nim.town/search/${this.username}`}}}});

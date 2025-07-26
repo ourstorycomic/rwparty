@@ -1,0 +1,109 @@
+@font-face {
+    font-family: "flaticon";
+    src: url("../fonts/flaticon96d3.ttf?2b78ede72afa794a647a3881b01388d9") format("truetype"),
+url("../fonts/flaticon96d3.woff?2b78ede72afa794a647a3881b01388d9") format("woff"),
+url("../fonts/flaticon96d3.woff2?2b78ede72afa794a647a3881b01388d9") format("woff2"),
+url("../fonts/flaticon96d3.eot?2b78ede72afa794a647a3881b01388d9#iefix") format("embedded-opentype"),
+url("../fonts/flaticon96d3.svg?2b78ede72afa794a647a3881b01388d9#flaticon") format("svg");
+}
+
+i[class^="flaticon-"]:before, i[class*=" flaticon-"]:before {
+    font-family: flaticon !important;
+    font-style: normal;
+    font-weight: normal !important;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+[class*="flaticon-"] {
+    display: block;
+    line-height: 0;
+}
+
+.flaticon-search:before {
+    content: "\f101";
+}
+.flaticon-filter:before {
+    content: "\f102";
+}
+.flaticon-funnel:before {
+    content: "\f103";
+}
+.flaticon-alarm-clock:before {
+    content: "\f104";
+}
+.flaticon-play-button:before {
+    content: "\f105";
+}
+.flaticon-send:before {
+    content: "\f106";
+}
+.flaticon-tv-screen:before {
+    content: "\f107";
+}
+.flaticon-next:before {
+    content: "\f108";
+}
+.flaticon-fast-forward:before {
+    content: "\f109";
+}
+.flaticon-check-mark:before {
+    content: "\f10a";
+}
+.flaticon-download:before {
+    content: "\f10b";
+}
+.flaticon-cloud-computing:before {
+    content: "\f10c";
+}
+.flaticon-insert-picture-icon:before {
+    content: "\f10d";
+}
+.flaticon-pause:before {
+    content: "\f10e";
+}
+.flaticon-telephone-call:before {
+    content: "\f10f";
+}
+.flaticon-network:before {
+    content: "\f110";
+}
+.flaticon-place:before {
+    content: "\f111";
+}
+.flaticon-email:before {
+    content: "\f112";
+}
+.flaticon-quote:before {
+    content: "\f113";
+}
+.flaticon-film:before {
+    content: "\f114";
+}
+.flaticon-video-camera:before {
+    content: "\f115";
+}
+.flaticon-18:before {
+    content: "\f116";
+}
+.flaticon-brightness:before {
+    content: "\f117";
+}
+.flaticon-presentation:before {
+    content: "\f118";
+}
+.flaticon-bolt:before {
+    content: "\f119";
+}
+.flaticon-lamp:before {
+    content: "\f11a";
+}
+.flaticon-tongue:before {
+    content: "\f11b";
+}
+.flaticon-mountains:before {
+    content: "\f11c";
+}

@@ -1,59 +1,481 @@
-<!DOCTYPE html>
-<html lang="vi">
+<!doctype html>
+<html class="no-js" lang="">
+    
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Xem Phim & Chat Cùng Nhau</title>
-  <style>
-    body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 1rem; }
-    #lobby, #room { margin-top: 2rem; }
-    #chat {
-      height:200px; border:1px solid #ccc; overflow-y:auto;
-      padding:.5rem; background:#f9f9f9; margin-bottom:.5rem;
-    }
-    input, button, select { padding:.5rem; margin:.2rem; }
-    video { display:block; width:100%; margin-top:1rem; }
-    .hidden { display:none; }
-  </style>
-</head>
-<body>
-  <h1>Xem Phim & Chat Cùng Nhau</h1>
+        <meta data-n-head="ssr" charset="utf-8">
+        <meta data-n-head="ssr" name="viewport" content="width=device-width, initial-scale=1">
+        <meta data-n-head="ssr" name="description" data-hid="description" content="Come hang out with our TV Shows & Comics!">
+        <meta data-n-head="ssr" name="og:site_name" data-hid="og:site_name" content="RW Studio">
+        <meta data-n-head="ssr" name="og:title" data-hid="og:title" content="RW Studio | Coming Soon">
+        <meta data-n-head="ssr" name="og:description" data-hid="og:description" content="Come hang out with our TV Shows & Comics!">
+        <meta data-n-head="ssr" name="og:type" data-hid="og:type" content="website">
+        <meta data-n-head="ssr" name="og:url" data-hid="og:url" content="index.html">
+        <meta data-n-head="ssr" name="og:image" data-hid="og:image" content="https://rwstudio.nim.town/assets/img/logo/app-logo.png">
+        <meta data-n-head="ssr" data-hid="mobile-web-app-capable" name="mobile-web-app-capable" content="yes">
+        <meta data-n-head="ssr" data-hid="apple-mobile-web-app-title" name="apple-mobile-web-app-title" content="Come hang out with our TV Shows & Comics!">
+        <meta data-n-head="ssr" data-hid="theme-color" name="theme-color" content="#1a1a1a">
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>RW Studio - Come hang out with our TV Shows & Comics!</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Lobby -->
-  <div id="lobby">
-    <input id="nickname" placeholder="Nhập nickname" />
-    <button id="btnCreate">Tạo phòng</button>
-    <input id="roomIdInput" placeholder="Nhập mã phòng" />
-    <button id="btnJoin">Vào phòng</button>
+		<link rel="shortcut icon" type="image/x-icon" href="assets/img/favicon.png">
+        <!-- Place favicon.ico in the root directory -->
+
+		<!-- CSS here -->
+        <link rel="stylesheet" href="assets/css/bootstrap.min.css">
+        <link rel="stylesheet" href="assets/css/animate.min.css">
+        <link rel="stylesheet" href="assets/css/magnific-popup.css">
+        <link rel="stylesheet" href="assets/css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="assets/css/swiper-bundle.css">
+        <link rel="stylesheet" href="assets/css/flaticon.css">
+        <link rel="stylesheet" href="assets/css/slick.css">
+        <link rel="stylesheet" href="assets/css/odometer.css">
+        <link rel="stylesheet" href="assets/css/default.css">
+        <link rel="stylesheet" href="assets/css/style.css">
+        <link rel="stylesheet" href="assets/css/responsive.css">
+        <link href="https://unpkg.com/video.js/dist/video-js.min.css" rel="stylesheet">
+    </head>
+    <body>
+
+        <!-- preloader -->
+        <div id="preloader">
+            <div id="loading-center">
+                <div id="loading-center-absolute">
+                    <img src="assets/img/logo.png" alt="Loader">
+					<div id="loading-center=text">
+					<p>DID YOU KNOW?</p>
+					<div id="factDisplay" alt="Loader"></div></div>
+                </div>
+            </div>
+        </div>
+        <!-- preloader-end -->
+
+		<!-- Scroll-top -->
+        <button class="scroll-top scroll-to-target" data-target="html">
+            <i class="fa-solid fa-angle-up"></i>
+        </button>
+        <!-- Scroll-top-end-->
+
+        <!-- header-area -->
+        <header>
+            <div id="sticky-header" class="menu-area menu-style-two">
+                <div class="container custom-container">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mobile-nav-toggler"><i class="fa-solid fa-bars"></i></div>
+                            <div class="menu-wrap">
+                                <nav class="menu-nav">
+                                    <div class="logo">
+                                        <a href="index.html"><img src="assets/img/logo/logo.png" alt=""></a>
+                                    </div>
+                                    <div class="header-cat-select">
+                                    </div>
+                                    <div class="navbar-wrap main-menu d-none d-lg-flex">
+                                        <ul class="navigation">
+                                            <li><a href="index.html">Home</a>
+                                            </li>
+                                            <li class="menu-item-has-children"><a href="comic.html">COMIC</a>
+                                                <ul class="submenu">
+                                            <li><a href="comic-details/thelastwords.html">The Last Words</a></li>
+                                                </ul>
+                                            </li>
+                                            <li><a href="tv-show.html">TV SHOW</a></li>
+                                            <li><a href="map.html">MAP</a>
+											<ul class="submenu">
+                                            <li><a href="map-details/who-am-i-now.html">Who Am I Now ?</a></li>
+                                                </ul>
+                                            </li>
+                                            <li class="active"><a href="movie.html">MOVIE</a>
+                                            </li>
+                                            <li class="menu-item-has-children"><a href="#">PAGES</a>
+                                                <ul class="submenu">
+                                                    <li><a href="termsofuse.html">Terms Of Use</a></li>
+                                                    <li><a href="privacy.html">Privacy Policy</a></li>
+                                                    <li><a href="about-us.html">About Us</a></li>
+                                                    <li><a href="help-center.html">Help Center</a></li>
+                                                    <li><a href="rwbox">Download</a></li>
+                                                </ul>
+                                            </li>
+                                    </div>
+                                    <div class="header-action d-none d-md-block">
+                                        <ul>
+                                            <li class="d-none d-xl-block">
+                                                <div class="footer-search">
+    <div class="box-search" id="search">
+        <form class="row" @submit.prevent>
+            <div class="col-12 col-7-m col-8-l col-10-xl">
+                <input class="field" id="username" type="text" placeholder="Find favorite project" v-model="username">
+            </div>
+            <div class="col-12 col-5-m col-4-l col-2-xl">
+                <button @click="coder" class="button"><i class="fas fa-search"></i></button>
+            </div>
+        </form>
+    </div>
+                                            </li>
+                                                    <div class="icon"></div>
+<div class="navbar-wrap main-menu d-none d-lg-flex">
+                                        <ul class="navigation">
+                                          <li class="header-btn"><a href="#" class="btn">Languages</a>
+                                                <ul class="submenu">
+                                                    <li><a href="index.html">English</a></li>
+                                                    <li><a href="lang/danish.html">Danish</a></li>
+                                                    <li><a href="lang/german.html">German</a></li>
+                                                    <li><a href="lang/spanish.html">Spanish</a></li>
+                                                    <li><a href="lang/italian.html">Italian</a></li>
+                                                    <li><a href="lang/vietnamese.html">Vietnamese</a></li>
+                                                    <li><a href="lang/romanian.html">Romanian</a></li>
+                                                </ul>
+                                            </li>
+                                    </div>
+                                        </ul>
+                                    </div>
+                                </nav>
+                            </div>
+                            <!-- Mobile Menu  -->
+                            <div class="mobile-menu">
+                                <nav class="menu-box">
+                                    <div class="close-btn"><i class="fa-solid fa-xmark"></i></div>
+                                    <div class="nav-logo"><a href="index.html"><img src="assets/img/logo/logo.png" alt="" title=""></a>
+                                    </div>
+                                    <div class="menu-outer">
+                                        <!--Here Menu Will Come Automatically Via Javascript / Same Menu as in Header-->
+                                    </div>
+<ul class="navigation">
+                                            <li class="menu-item-has-children"><a href="#">Languages</a>
+                                                <ul class="submenu">
+                                                    <li><a href="index.html">English</a></li>
+                                                    <li><a href="lang/danish.html">Danish</a></li>
+                                                    <li><a href="lang/german.html">German</a></li>
+                                                    <li><a href="lang/spanish.html">Spanish</a></li>
+                                                    <li><a href="lang/italian.html">Italian</a></li>
+                                                    <li><a href="lang/vietnamese.html">Vietnamese</a></li>
+                                                    <li><a                 href="lang/romanian.html">Romanian</a></li>
+                                           </ul>
+                                        </li>
+                                    </div>
+                                </nav>
+                            </div>
+                            <div class="menu-backdrop"></div>
+                            <!-- End Mobile Menu -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <!-- header-area-end -->
+
+
+        <!-- main-area -->
+        <main>
+<!-- Watch & Chat Section -->
+<section id="watch-party" class="pt-90 pb-90">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+<!-- Lobby -->
+<div id="lobby" class="text-center mb-4">
+  <input id="nickname" class="form-control d-inline-block w-50" placeholder="Your name" />
+  <button id="btnCreate" class="btn btn-primary btn-sm mx-1">create room</button>
+  <input id="roomIdInput" class="form-control d-inline-block w-50" placeholder="ID room" />
+  <button id="btnJoin" class="btn btn-secondary btn-sm mx-1">join room</button>
+</div>
+
+
+        <!-- Room (ẩn mặc định) -->
+        <div id="room" class="d-none">
+          <p class="text-center">Room ID: <strong><span id="roomIdDisplay"></span></strong></p>
+
+          <!-- IndigoPlayer container -->
+          <div id="playerContainer" class="mb-2"></div>
+          <script src="https://rwstudio.nim.town/rw-player/lib/indigo-player.js"></script>
+          <script>
+            // Cấu hình IndigoPlayer
+            const config = {
+              sources: [{ type: 'mp4', src: 'https://rwstudio.nim.town/movie/comingsoon/film/coming-soon.mp4' }],
+              subtitles: [
+                { label: 'English', srclang: 'en', src: 'https://rwstudio.nim.town/movie/comingsoon/subtitles/en.vtt' },
+                { label: 'Vietnamese', srclang: 'vi', src: 'https://rwstudio.nim.town/movie/comingsoon/subtitles/vi.vtt' },
+              ],
+              ui: { image: 'https://ourstorycomic.github.io/movie/comingsoon/image/comingsoon.jpg', locale: 'en-US' },
+            };
+            const element = document.getElementById('playerContainer');
+            const player = IndigoPlayer.init(element, config);
+            window.sharedVideo = player;
+          </script>
+
+          <!-- Playback rate (chỉ chủ phòng) -->
+          <select id="playbackRate" class="form-select w-auto mb-3 d-none">
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+          </select>
+
+          <!-- Chat Box -->
+          <div class="chat-area mb-2">
+            <h5>Chat Box</h5>
+            <div id="chat" class="p-3 bg-light" style="height:200px; overflow-y:auto;"></div>
+            <div class="input-group mt-2">
+              <input id="chatInput" type="text" class="form-control" placeholder="Gõ tin nhắn..." />
+              <button id="btnSend" class="btn btn-outline-primary">Gửi</button>
+            </div>
+          </div>
+
+          <!-- Room Members -->
+          <div class="members-area">
+            <h5>Room Members</h5>
+            <div id="members" class="list-group"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+</section>
 
-  <!-- Room -->
-  <div id="room" class="hidden">
-    <p>Phòng: <strong><span id="roomIdDisplay"></span></strong></p>
+            <!-- breadcrumb-area -->
+            <div class="breadcrumb-area movie-details-breadcrumb">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="breadcrumb-content">
+                                <nav aria-label="breadcrumb">
+                                    <ol class="breadcrumb">
+                                        <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                                        <li class="breadcrumb-item"><a href="movie.html">Movie</a></li>
+                                        <li class="breadcrumb-item active" aria-current="page">Coming Soon</li>
+                                    </ol>
+                                </nav>
+                                <div class="download-btn">
+                                    <a href="#" target="_blank" download=""><i class="fa-solid fa-download"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- breadcrumb-area-end -->
 
-    <!-- Video -->
-    <video id="videoPlayer" preload="metadata">
-      <source src="movie.mp4" type="video/mp4">
-      Trình duyệt không hỗ trợ video.
-    </video>
-    <select id="playbackRate" class="hidden">
-      <option value="0.5">0.5×</option>
-      <option value="1" selected>1×</option>
-      <option value="1.5">1.5×</option>
-      <option value="2">2×</option>
-    </select>
+            <!-- episode-area -->
+            <section class="episode-area episode-bg pt-90 pb-90">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-lg-12">
+                            <div class="section-title mb-40">
+                                <h4 class="sub-title">RW PROJECT</h4>
+                                <h2 class="title">Rate & Review</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xl-9 col-lg-8">
+                            <div class="episode-watch-wrap">
+<div id="disqus_thread"></div>
+<script>
+    (function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = 'https://https-rwstudio-nim-town.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the</noscript>
+                            </div>
+                            <div class="movie-description">
+                                <div class="description-title">
+                                    <h2 class="title">2022 <br> 1h 45 min <span>dark world</span></h2>
+                                </div>
+                                <div class="description-content">
+                                    <span>information</span>
+                                    <p>Locked.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xl-3 col-lg-4">
+                            <div class="more-like-wrap">
+                                <div class="more-like-top">
+                                    <h4 class="title">Other Projects</h4>
+                                </div>
+                                <div class="more-like-bottom">
+                                    <ul>
+                                        <li>
+                                            <div class="thumb">
+                                                <a href="#"><img src="assets/img/poster/comingsoon.jpg" alt="img"></a>
+                                            </div>
+                                            <div class="content">
+                                                <h4 class="title"><a href="#">Coming Soon</a></h4>
+                                                <p><span>Locked</span> Locked</p>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <div class="thumb">
+                                                <a href="#"><img src="assets/img/poster/comingsoon.jpg" alt="img"></a>
+                                            </div>
+                                            <div class="content">
+                                                <h4 class="title"><a href="#">Coming Soon</a></h4>
+                                                <p><span>Locked</span> Locked</p>
+                                            </div>
+                                        </li>
+                                        <li>
+                                            <div class="thumb">
+                                                <a href="#"><img src="assets/img/poster/comingsoon.jpg" alt="img"></a>
+                                            </div>
+                                            <div class="content">
+                                                <h4 class="title"><a href="#">Coming Soon</a></h4>
+                                                <p><span>Locked</span> Locked</p>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- episode-area-end -->
 
-    <!-- Chat -->
-    <h3>Chat</h3>
-    <div id="chat"></div>
-    <input id="chatInput" placeholder="Gõ tin nhắn..." />
-    <button id="btnSend">Gửi</button>
+        </main>
+        <!-- main-area-end -->
 
-    <!-- Room Members -->
-    <h3>Thành viên phòng</h3>
-    <div id="members"></div>
-  </div>
+        <!-- footer-area -->
+        <footer>
+            <div class="footer-area">
+                <div class="footer-top">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <div class="footer-logo text-center mb-30">
+                                    <a href="index.html"><img src="assets/img/logo/logo.png" alt="img"></a>
+                                </div>
+                                <div class="footer-menu-wrap">
+                                    <div class="footer-menu">
+                                        <ul class="navigation">
+                                            <li><a href="index.html">HOME</a></li>
+                                            <li><a href="comic.html">COMIC</a></li>
+                                            <li><a href="tv-show.html">TV SHOW</a></li>
+                                            <li><a href="map.html">MAP</a></li>
+                                            <li class="active"><a href="movie.html">MOVIE</a></li>
+                                        </ul>
+                                    </div>
+                                    <div class="footer-search">
+    <div class="box-search" id="search2">
+        <form class="row" @submit.prevent>
+            <div class="col-12 col-7-m col-8-l col-10-xl">
+                <input class="field" id="username" type="text" placeholder="Find favorite project" v-model="username">
+            </div>
+            <div class="col-12 col-5-m col-4-l col-2-xl">
+                <button @click="coder" class="button"><i class="fas fa-search"></i></button>
+            </div>
+        </form>
+    </div>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-lg-3 col-md-4 col-sm-6">
+                                <div class="footer-widget mb-50">
+                                    <h4 class="fw-title">RW Comic Projects</h4>
+                                    <ul class="fw-ling">
+                                        <li><a href="comic-details/thelastwords.html">The Last Words</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-md-4 col-sm-6">
+                                <div class="footer-widget mb-50">
+                                    <h4 class="fw-title">RW TV Show Projects</h4>
+                                    <ul class="fw-ling">
+                                        <li><a href="#">Coming Soon</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-md-4 col-sm-6">
+                                <div class="footer-widget mb-50">
+                                    <h4 class="fw-title">RW Map Projects</h4>
+                                    <ul class="fw-ling">
+                                        <li><a href="map-details/who-am-i-now.html">Who Am I Now ?</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-md-4 col-sm-6">
+                                <div class="footer-widget mb-50">
+                                    <h4 class="fw-title">RW Movie Projects</h4>
+                                    <ul class="fw-ling">
+                                        <li><a href="#">Coming Soon</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                        <li><a href="#">Coming Soon</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <div class="container">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <div class="copyright-text">
+                                    <p id="copyright">Copyright &copy;&nbsp;<span id="year"> </span> All Rights Reserved By <a href=https://rwstudio.nim.town>RW Studio</a></p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="copyright-img text-center text-md-end">
+                                    <div class="footer-menu">
+                                        <ul class="navigation">
+                                            <li><a href="termsofuse.html">terms of use</a></li>
+                                            <li><a href="privacy.html">privacy</a></li>
+                                            <li><a href="about-us.html">About Us</a></li>
+                                            <li><a href="help-center.html">Help Center</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+        <!-- footer-area-end -->
 
-  <script type="module" src="app.js"></script>
-</body>
+
+
+
+
+		<!-- JS here -->
+        <script src="assets/js/vendor/jquery-3.6.0.min.js"></script>
+        <script src="assets/js/bootstrap.min.js"></script>
+        <script src="assets/js/isotope.pkgd.min.js"></script>
+        <script src="assets/js/imagesloaded.pkgd.min.js"></script>
+        <script src="assets/js/jquery.magnific-popup.min.js"></script>
+        <script src="assets/js/jquery.odometer.min.js"></script>
+        <script src="assets/js/jquery.appear.js"></script>
+        <script src="assets/js/swiper-bundle.js"></script>
+        <script src="assets/js/slick.min.js"></script>
+        <script src="assets/js/validator.js"></script>
+        <script src="assets/js/ajax-form.js"></script>
+        <script src="assets/js/wow.min.js"></script>
+        <script src="assets/js/main.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+        <script src="assets/js/searchproject.js"></script>
+        <script src="assets/js/searchproject2.js"></script>
+        <script src="https://unpkg.com/video.js/dist/video.min.js"></script>
+		<script src="assets/js/fact.js"></script>
+		<script src="assets/js/app.js"></script>
+    </body>
+
 </html>
