@@ -2,39 +2,90 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Xem Phim &amp; Call Cùng Nhau</title>
   <style>
     body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 1rem; }
     #lobby, #room { margin-top: 2rem; }
-    #chat, #callMembers { height: 200px; border: 1px solid #ccc; overflow-y: auto; padding: .5rem; background: #f9f9f9; margin-bottom: .5rem; }
-    #chat p, #callMembers div { margin: .2rem 0; }
-    input, button { padding: .5rem; margin: .2rem; }
-    video { display: block; margin-top: 1rem; width: 100%; max-width: 100%; }
-    audio { display: none; }
+    #chat, #members, #callMembers {
+      height: 200px; border: 1px solid #ccc; overflow-y: auto;
+      padding: .5rem; background: #f9f9f9; margin-bottom: .5rem;
+    }
+    #chat p, #members div, #callMembers audio { margin: .2rem 0; }
+    input, button, select { padding: .5rem; margin: .2rem; }
+    video { display: block; width: 100%; margin-top: 1rem; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
   <h1>Xem Phim &amp; Call Cùng Nhau</h1>
+
+  <!-- Lobby -->
   <div id="lobby">
     <input id="nickname" placeholder="Nhập nickname" />
-    <br/>
-    <button id="btnJoinCall">Tham gia Call</button>
-    <button id="btnLeaveCall" disabled>Rời Call</button>
+    <button id="btnCreate">Tạo phòng</button>
+    <input id="roomIdInput" placeholder="Nhập mã phòng" />
+    <button id="btnJoin">Vào phòng</button>
   </div>
-  <div id="room" style="display:none;">
+
+  <!-- Room -->
+  <div id="room" class="hidden">
     <p>Phòng: <strong><span id="roomIdDisplay"></span></strong></p>
-    <video id="videoPlayer" controls>
+
+    <!-- Firebase init -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
+      // Firebase config
+      const firebaseConfig = {
+        apiKey: "AIzaSyBvhRRIP3zyPL6htL2fgSAAhks5y6EJB7Y",
+        authDomain: "rwparty-24391.firebaseapp.com",
+        databaseURL: "https://rwparty-24391-default-rtdb.firebaseio.com",
+        projectId: "rwparty-24391",
+        storageBucket: "rwparty-24391.firebasestorage.app",
+        messagingSenderId: "281506397324",
+        appId: "1:281506397324:web:0c5af5bdbb7eeca0588fa9",
+        measurementId: "G-HX95ZF61BE"
+      };
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+    </script>
+
+    <!-- Video (chỉ chủ phòng có controls) -->
+    <video id="videoPlayer" preload="metadata">
       <source src="movie.mp4" type="video/mp4">
       Trình duyệt không hỗ trợ video.
     </video>
+    <select id="playbackRate" class="hidden">
+      <option value="0.5">0.5×</option>
+      <option value="1" selected>1×</option>
+      <option value="1.5">1.5×</option>
+      <option value="2">2×</option>
+    </select>
+
+    <!-- Chat -->
     <h3>Chat</h3>
     <div id="chat"></div>
     <input id="chatInput" placeholder="Gõ tin nhắn..." />
     <button id="btnSend">Gửi</button>
+
+    <!-- Thành viên -->
+    <h3>Thành viên</h3>
+    <div id="members"></div>
+
+    <!-- Voice Call -->
     <h3>Voice Call</h3>
-    <h4>Thành viên đang gọi</h4>
+    <button id="btnJoinCall">Tham gia Call</button>
+    <button id="btnLeaveCall" disabled>Rời Call</button>
+    <div id="callControls" class="hidden">
+      <button id="btnMic">Mic: On</button>
+      <button id="btnSpeaker">Speaker: On</button>
+    </div>
     <div id="callMembers"></div>
   </div>
+
+  <!-- App logic -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
