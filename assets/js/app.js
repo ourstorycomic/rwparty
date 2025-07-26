@@ -1,28 +1,49 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import {
-  getDatabase, ref, set, push,
-  onChildAdded, onValue, onChildRemoved, get, remove
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+// File: assets/js/app.js
+// ======================
 
-// Firebase init
-const firebaseConfig = { /* ... your config ... */ };
+// 1) Import Firebase SDK dưới dạng module:
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getDatabase, ref, set, push,
+         onChildAdded, onValue, onChildRemoved,
+         get, remove } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
+
+// 2) Cấu hình Firebase của bạn:
+const firebaseConfig = {
+  apiKey: "AIzaSyBvhRRIP3zyPL6htL2fgSAAhks5y6EJB7Y",
+  authDomain: "rwparty-24391.firebaseapp.com",
+  databaseURL: "https://rwparty-24391-default-rtdb.firebaseio.com",
+  projectId: "rwparty-24391",
+  storageBucket: "rwparty-24391.appspot.com",
+  messagingSenderId: "281506397324",
+  appId: "1:281506397324:web:0c5af5bdbb7eeca0588fa9",
+  measurementId: "G-HX95ZF61BE"
+};
+
+// 3) Khởi tạo Firebase & Database:
 const app = initializeApp(firebaseConfig);
+getAnalytics(app);
 const db = getDatabase(app);
 
-// DOM
+// 4) DOM & state
 const E = id => document.getElementById(id);
-const lobby = E('lobby'), roomDiv = E('room');
-const nickInput = E('nickname'), roomInput = E('roomIdInput');
-const btnCreate = E('btnCreate'), btnJoin = E('btnJoin');
-const roomDisp = E('roomIdDisplay');
-const playbackRate = E('playbackRate');
-const chat = E('chat'), chatInput = E('chatInput'), btnSend = E('btnSend');
-const membersDiv = E('members');
-const clientId = Math.random().toString(36).substr(2, 8);
+const lobby       = E('lobby'),
+      roomDiv     = E('room'),
+      nickInput   = E('nickname'),
+      roomInput   = E('roomIdInput'),
+      btnCreate   = E('btnCreate'),
+      btnJoin     = E('btnJoin'),
+      roomDisp    = E('roomIdDisplay'),
+      playbackRate= E('playbackRate'),
+      chat        = E('chat'),
+      chatInput   = E('chatInput'),
+      btnSend     = E('btnSend'),
+      membersDiv  = E('members');
 
+const clientId = Math.random().toString(36).substr(2, 8);
 let nickname, roomId, isOwner = false;
 
-// Create room
+// 5) Create room
 btnCreate.onclick = async () => {
   nickname = nickInput.value.trim();
   if (!nickname) return alert('Nhập nickname');
@@ -34,7 +55,7 @@ btnCreate.onclick = async () => {
   enterRoom();
 };
 
-// Join room
+// 6) Join room
 btnJoin.onclick = async () => {
   nickname = nickInput.value.trim();
   const id = roomInput.value.trim();
@@ -47,16 +68,16 @@ btnJoin.onclick = async () => {
   enterRoom();
 };
 
-// Hiển thị UI khi đã join/create
+// 7) Hiển thị UI khi đã join/create
 function enterRoom() {
   lobby.classList.add('d-none');
   roomDiv.classList.remove('d-none');
   roomDisp.textContent = roomId;
 
-  // Nếu chủ phòng, bật controls và playbackRate
   if (isOwner) {
     playbackRate.classList.remove('d-none');
-    playbackRate.onchange = () => window.sharedVideo.setPlaybackRate(parseFloat(playbackRate.value));
+    playbackRate.onchange = () =>
+      window.sharedVideo.setPlaybackRate(parseFloat(playbackRate.value));
   }
 
   setupChat();
@@ -64,7 +85,7 @@ function enterRoom() {
   setupMembers();
 }
 
-// Chat
+// 8) Chat
 function setupChat() {
   const chatRef = ref(db, `rooms/${roomId}/chat`);
   onChildAdded(chatRef, snap => {
@@ -82,7 +103,7 @@ function setupChat() {
   };
 }
 
-// Video sync
+// 9) Video sync
 function setupVideoSync() {
   const evtRef = ref(db, `rooms/${roomId}/video/events`);
   const player = window.sharedVideo;
@@ -96,13 +117,16 @@ function setupVideoSync() {
   });
 
   if (isOwner) {
-    player.on('play',    () => push(evtRef, { type: 'play',  user: nickname, time: player.getCurrentTime() }));
-    player.on('pause',   () => push(evtRef, { type: 'pause', user: nickname, time: player.getCurrentTime() }));
-    player.on('seeked',  () => push(evtRef, { type: 'seek',  user: nickname, time: player.getCurrentTime() }));
+    player.on('play',  () =>
+      push(evtRef, { type: 'play',  user: nickname, time: player.getCurrentTime() }));
+    player.on('pause', () =>
+      push(evtRef, { type: 'pause', user: nickname, time: player.getCurrentTime() }));
+    player.on('seeked',() =>
+      push(evtRef, { type: 'seek',  user: nickname, time: player.getCurrentTime() }));
   }
 }
 
-// Members
+// 10) Members
 async function setupMembers() {
   const memRef = ref(db, `rooms/${roomId}/members`);
   const exist = (await get(memRef)).val() || {};
@@ -137,7 +161,7 @@ async function setupMembers() {
   });
 }
 
-// Autofill room từ URL
+// 11) Autofill room từ URL
 window.addEventListener('load', () => {
   const rid = new URLSearchParams(location.search).get('room');
   if (rid) roomInput.value = rid;
