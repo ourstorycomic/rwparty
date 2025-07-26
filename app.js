@@ -1,12 +1,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
+import { getAnalytics }   from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
 import {
   getDatabase, ref, set, push,
   onChildAdded, onChildChanged, onChildRemoved, onValue,
   remove, get
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
 
-// --- 1) Firebase init ---
+// 1) Firebase init
 const firebaseConfig = {
   apiKey: "AIzaSyBvhRRIP3zyPL6htL2fgSAAhks5y6EJB7Y",
   authDomain: "rwparty-24391.firebaseapp.com",
@@ -17,67 +17,69 @@ const firebaseConfig = {
   appId: "1:281506397324:web:0c5af5bdbb7eeca0588fa9",
   measurementId: "G-HX95ZF61BE"
 };
-const app = initializeApp(firebaseConfig);
+const app       = initializeApp(firebaseConfig);
 getAnalytics(app);
-const db = getDatabase(app);
+const db        = getDatabase(app);
 
-// --- 2) DOM refs ---
+// 2) DOM refs
 const E = id => document.getElementById(id);
 const lobby       = E('lobby'),    roomDiv   = E('room');
 const nickInput   = E('nickname'), roomInput = E('roomIdInput');
 const btnCreate   = E('btnCreate'), btnJoin   = E('btnJoin');
 const roomDisp    = E('roomIdDisplay');
 const video       = E('videoPlayer'), rateSelect = E('playbackRate');
-const chat        = E('chat'),      chatInput   = E('chatInput'), btnSend = E('btnSend');
+const chat        = E('chat'),      chatInput   = E('chatInput'), btnSend    = E('btnSend');
 const membersDiv  = E('members');
 const btnJoinCall = E('btnJoinCall'), btnLeaveCall = E('btnLeaveCall');
 const callControls= E('callControls'), btnMic      = E('btnMic'), btnSpeaker = E('btnSpeaker');
-const callMembers = E('callMembers');
+const callMembers = E('callMembers'), audioStreams = E('audioStreams');
 
-// --- 3) State ---
+// 3) State
 let nickname, roomId, isOwner=false;
 let localStream = null;
-const peers    = {};
+const peers    = {};     // peerId -> RTCPeerConnection
 const clientId = Math.random().toString(36).substr(2,8);
+
+// STUN only
 const ICE_CONFIG = { iceServers:[{urls:'stun:stun.l.google.com:19302'}] };
 
-// Helper to read ?room=
+// Helper: read ?room=
 function getRoomIdFromURL(){
   return new URLSearchParams(location.search).get('room');
 }
 
-// --- 4) Create room ---
+// 4) Create room
 btnCreate.onclick = async () => {
   nickname = nickInput.value.trim();
   if(!nickname) return alert('Nhập nickname');
   roomId = Math.random().toString(36).substr(2,8);
-  history.replaceState(null,'','?room='+roomId);
+  history.replaceState(null,null,'?room='+roomId);
   isOwner = true;
   try {
     await remove(ref(db,`rooms/${roomId}`));
     await set(ref(db,`rooms/${roomId}/owner`),nickname);
     enterRoom();
-  } catch(e) {
+  } catch(e){
     console.error(e);
     alert('Lỗi tạo phòng');
   }
 };
 
-// --- 5) Join room ---
+// 5) Join room
 btnJoin.onclick = async () => {
   nickname = nickInput.value.trim();
   const id = roomInput.value.trim();
-  if(!nickname||!id) return alert('Nhập hết thông tin');
+  if(!nickname||!id) return alert('Nhập nickname & mã phòng');
   roomId = id;
-  history.replaceState(null,'','?room='+roomId);
+  history.replaceState(null,null,'?room='+roomId);
   await remove(ref(db,`rooms/${roomId}/webrtc`));
   const snap = await get(ref(db,`rooms/${roomId}/owner`));
   if(!snap.exists()) return alert('Phòng không tồn tại');
-  isOwner = (snap.val() === nickname);
+  isOwner = (snap.val()===nickname);
   enterRoom();
 };
 
-// --- 6) Show room UI ---
+// Show main UI
 function enterRoom(){
   lobby.classList.add('hidden');
   roomDiv.classList.remove('hidden');
@@ -87,7 +89,7 @@ function enterRoom(){
   setupMembersAndCall();
 }
 
-// --- 7) Chat ---
+// 6) Chat
 function setupChat(){
   const chatRef = ref(db,`rooms/${roomId}/chat`);
   onChildAdded(chatRef, s=>{
@@ -105,11 +107,11 @@ function setupChat(){
   };
 }
 
-// --- 8) Video sync ---
+// 7) Video sync
 function setupVideoSync(){
   const evtRef = ref(db,`rooms/${roomId}/video/events`);
   onChildAdded(evtRef, s=>{
-    const {type,user,time} = s.val();
+    const {type,user,time}=s.val();
     if(user===nickname) return;
     video.currentTime = time;
     if(type==='play') video.play();
@@ -120,7 +122,7 @@ function setupVideoSync(){
     rateSelect.classList.remove('hidden');
     ['play','pause','seeked'].forEach(evt=>{
       video.addEventListener(evt, ()=>{
-        push(evtRef, {type:evt==='seeked'?'seek':evt,user:nickname,time:video.currentTime});
+        push(evtRef,{type:evt==='seeked'?'seek':evt,user:nickname,time:video.currentTime});
       });
     });
     rateSelect.onchange = ()=>video.playbackRate = rateSelect.value;
@@ -129,22 +131,24 @@ function setupVideoSync(){
   }
 }
 
-// --- 9) Members & Call setup ---
+// 8) Members & Call
 async function setupMembersAndCall(){
-  // Room members
   const memRef = ref(db,`rooms/${roomId}/members`);
-  // prevent duplicate
+  // prevent duplicate nickname
   const exist = (await get(memRef)).val()||{};
   if(Object.values(exist).some(m=>m.user===nickname)){
     alert('Nickname đã tồn tại'); return location.reload();
   }
+  // add to room members
   await set(ref(db,`rooms/${roomId}/members/${clientId}`),{user:nickname,muted:false});
-
+  
+  // kick from room
   onChildRemoved(memRef, s=>{
     if(s.key===clientId){
       alert('Bạn bị kick khỏi phòng'); location.reload();
     }
   });
+  // room mute
   onChildChanged(memRef, s=>{
     if(s.key===clientId && localStream){
       const muted = s.val().muted;
@@ -152,6 +156,7 @@ async function setupMembersAndCall(){
       btnMic.textContent = `Mic: ${muted?'Off':'On'}`;
     }
   });
+  // render room members
   onValue(memRef, s=>{
     membersDiv.innerHTML = '';
     const data = s.val()||{};
@@ -160,10 +165,10 @@ async function setupMembersAndCall(){
       d.textContent = obj.user + (id===clientId?' (Bạn)':'');
       if(isOwner && id!==clientId){
         const kr = document.createElement('button');
-        kr.textContent = 'Kick room';
+        kr.textContent = 'Kick khỏi room';
         kr.onclick = ()=>remove(ref(db,`rooms/${roomId}/members/${id}`));
         const kc = document.createElement('button');
-        kc.textContent = 'Kick call';
+        kc.textContent = 'Kick khỏi call';
         kc.onclick = ()=>remove(ref(db,`rooms/${roomId}/callMembers/${id}`));
         const m  = document.createElement('button');
         m.textContent = obj.muted?'Unmute':'Mute';
@@ -174,7 +179,7 @@ async function setupMembersAndCall(){
     }
   });
 
-  // Call members
+  // Call members list
   const callRef = ref(db,`rooms/${roomId}/callMembers`);
   onValue(callRef, s=>{
     callMembers.innerHTML = '';
@@ -187,66 +192,69 @@ async function setupMembersAndCall(){
       div.append(span);
       if(isOwner && id!==clientId){
         const kc = document.createElement('button');
-        kc.textContent = 'Kick call';
+        kc.textContent = 'Kick khỏi call';
         kc.onclick = ()=>remove(ref(db,`rooms/${roomId}/callMembers/${id}`));
         div.append(kc);
       }
       callMembers.append(div);
     }
   });
-  onChildRemoved(callRef,s=>{
-    if(s.key===clientId){ alert('Bạn bị kick khỏi call'); leaveCall(); }
+  // if kicked from call
+  onChildRemoved(callRef, s=>{
+    if(s.key===clientId){
+      alert('Bạn bị kick khỏi call'); leaveCall();
+    }
   });
 
-  // Signaling
+  // signaling channel
   const sigRef = ref(db,`rooms/${roomId}/webrtc`);
   onChildAdded(sigRef, s=>handleSignal(s.val()));
 
-  // auto connect when new room member arrives
+  // auto connect new room members when calling
   onChildAdded(memRef, s=>{
-    const pid = s.key;
+    const pid=s.key;
     if(pid!==clientId && localStream && !peers[pid]) createPeerConnection(pid,true);
   });
 
   btnJoinCall.onclick = ()=>joinCall(callRef);
-  btnLeaveCall.onclick = ()=>{
+  btnLeaveCall.onclick=()=>{
     remove(ref(db,`rooms/${roomId}/callMembers/${clientId}`));
     leaveCall();
   };
 }
 
-// --- 10) Join call ---
+// 9) Join call
 async function joinCall(callRef){
   localStream = await navigator.mediaDevices.getUserMedia({audio:true});
-  btnJoinCall.disabled = true;
-  btnLeaveCall.disabled = false;
+  btnJoinCall.disabled=true;
+  btnLeaveCall.disabled=false;
   callControls.classList.remove('hidden');
-  btnMic.textContent    = 'Mic: On';
-  btnSpeaker.textContent= 'Speaker: On';
+  btnMic.textContent='Mic: On';
+  btnSpeaker.textContent='Speaker: On';
 
+  // add self to callMembers
   await set(ref(db,`rooms/${roomId}/callMembers/${clientId}`),{user:nickname});
 
+  // offer existing
   const snap=await get(ref(db,`rooms/${roomId}/members`));
-  Object.keys(snap.val()||{}).forEach(pid=>{
+  for(let pid of Object.keys(snap.val()||{})){
     if(pid!==clientId) createPeerConnection(pid,true);
-  });
+  }
 }
 
-// --- 11) Leave call ---
+// 10) Leave call
 function leaveCall(){
-  Object.values(peers).forEach(({pc,audioEl})=>{
-    pc.close();
-    audioEl.remove();
-  });
-  Object.keys(peers).forEach(k=>delete peers[k]);
+  Object.values(peers).forEach(({pc})=>pc.close());
+  Object.keys(peers).forEach(id=>delete peers[id]);
+  audioStreams.innerHTML='';   // remove all audio tags
   localStream && localStream.getTracks().forEach(t=>t.stop());
-  localStream = null;
-  btnJoinCall.disabled = false;
-  btnLeaveCall.disabled = true;
+  localStream=null;
+  btnJoinCall.disabled=false;
+  btnLeaveCall.disabled=true;
   callControls.classList.add('hidden');
 }
 
-// --- 12) Mic toggle ---
+// 11) Mic toggle
 btnMic.onclick = ()=>{
   if(!localStream) return;
   const t = localStream.getAudioTracks()[0];
@@ -254,28 +262,30 @@ btnMic.onclick = ()=>{
   btnMic.textContent = `Mic: ${t.enabled?'On':'Off'}`;
 };
 
-// --- 13) Speaker toggle ---
+// 12) Speaker toggle (mute/unmute received)
 btnSpeaker.onclick = ()=>{
-  const muted = !document.querySelector('#callMembers audio')?.muted;
-  document.querySelectorAll('#callMembers audio').forEach(a=>a.muted = muted);
-  btnSpeaker.textContent = `Speaker: ${muted?'Off':'On'}`;
+  const audios = audioStreams.querySelectorAll('audio');
+  const muteAll = !audios[0]?.muted;
+  audios.forEach(a=>a.muted = muteAll);
+  btnSpeaker.textContent = `Speaker: ${muteAll?'Off':'On'}`;
 };
 
-// --- 14) PeerConnection & ontrack fix ---
+// 13) PeerConnection
 function createPeerConnection(peerId,isOffer){
   if(peers[peerId]) return;
   const pc = new RTCPeerConnection(ICE_CONFIG);
+  // add tracks
   localStream.getTracks().forEach(t=>pc.addTrack(t,localStream));
 
+  // ontrack -> new audio element
   pc.ontrack = ev => {
-    // create new audio element per track
     const audioEl = document.createElement('audio');
     audioEl.autoplay = true;
     audioEl.controls = false;
     audioEl.srcObject = ev.streams[0];
-    // ensure playback
+    audioStreams.appendChild(audioEl);
+    // try to play
     audioEl.play().catch(console.warn);
-    callMembers.appendChild(audioEl);
   };
 
   pc.onicecandidate = ev => {
@@ -286,7 +296,7 @@ function createPeerConnection(peerId,isOffer){
     }
   };
 
-  peers[peerId] = { pc };
+  peers[peerId] = pc;
 
   if(isOffer){
     pc.createOffer().then(o=>{
@@ -298,11 +308,11 @@ function createPeerConnection(peerId,isOffer){
   }
 }
 
-// --- 15) Handle incoming ---
+// 14) Handle signals
 async function handleSignal({from,to,sdp,candidate}){
   if(to!==clientId) return;
   if(!peers[from]) createPeerConnection(from,false);
-  const pc = peers[from].pc;
+  const pc = peers[from];
   if(sdp){
     await pc.setRemoteDescription(sdp);
     if(sdp.type==='offer'){
@@ -318,7 +328,7 @@ async function handleSignal({from,to,sdp,candidate}){
   }
 }
 
-// --- 16) Auto-fill ---
+// 15) autofill
 window.addEventListener('load', ()=>{
   const rid = getRoomIdFromURL();
   if(rid) roomInput.value = rid;
