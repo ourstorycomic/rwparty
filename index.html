@@ -6,63 +6,35 @@
   <style>
     body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 1rem; }
     #lobby, #room { margin-top: 2rem; }
-    #chat, #callMembers {
-      height: 200px;
-      border: 1px solid #ccc;
-      overflow-y: auto;
-      padding: .5rem;
-      background: #f9f9f9;
-      margin-bottom: .5rem;
-    }
+    #chat, #callMembers { height: 200px; border: 1px solid #ccc; overflow-y: auto; padding: .5rem; background: #f9f9f9; margin-bottom: .5rem; }
     #chat p, #callMembers div { margin: .2rem 0; }
     input, button { padding: .5rem; margin: .2rem; }
     video { display: block; margin-top: 1rem; width: 100%; max-width: 100%; }
-    #callControls { margin-top:1rem; }
-    audio { display: none; } /* chỉ hiện khi có stream */
+    audio { display: none; }
   </style>
 </head>
 <body>
-
   <h1>Xem Phim &amp; Call Cùng Nhau</h1>
-
-  <!-- Lobby -->
   <div id="lobby">
     <input id="nickname" placeholder="Nhập nickname" />
     <br/>
-    <button id="btnCreate">Tạo phòng</button>
-    <input id="roomIdInput" placeholder="Nhập mã phòng" />
-    <button id="btnJoin">Vào phòng</button>
+    <button id="btnJoinCall">Tham gia Call</button>
+    <button id="btnLeaveCall" disabled>Rời Call</button>
   </div>
-
-  <!-- Room -->
   <div id="room" style="display:none;">
     <p>Phòng: <strong><span id="roomIdDisplay"></span></strong></p>
-
-    <!-- Video -->
     <video id="videoPlayer" controls>
       <source src="movie.mp4" type="video/mp4">
       Trình duyệt không hỗ trợ video.
     </video>
-
-    <!-- Chat -->
     <h3>Chat</h3>
     <div id="chat"></div>
     <input id="chatInput" placeholder="Gõ tin nhắn..." />
     <button id="btnSend">Gửi</button>
-
-    <!-- Call -->
     <h3>Voice Call</h3>
-    <button id="btnJoinCall">Tham gia Call</button>
-    <button id="btnLeaveCall" disabled>Rời Call</button>
-    <div id="callControls" style="display:none;">
-      <button id="btnMic">Mic: On</button>
-      <button id="btnSpeaker">Speaker: On</button>
-    </div>
-    <h4>Thành viên</h4>
+    <h4>Thành viên đang gọi</h4>
     <div id="callMembers"></div>
-    <!-- audio elements sẽ được tạo động -->
   </div>
-
   <script type="module" src="app.js"></script>
 </body>
 </html>
