@@ -7,8 +7,7 @@ import {
   remove, get
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
 
-// 2) Firebase config (thay YOUR_* nếu cần)
-// Dưới đây dùng config bạn đã cung cấp
+// 2) Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyBvhRRIP3zyPL6htL2fgSAAhks5y6EJB7Y",
   authDomain: "rwparty-24391.firebaseapp.com",
@@ -41,10 +40,10 @@ const callMembers = E('callMembers');
 // 5) State
 let nickname, roomId, isOwner = false;
 let localStream = null;
-const peers = {};                  // peerId → { pc, audioEl }
+const peers    = {};                  // peerId → { pc, audioEl }
 const clientId = Math.random().toString(36).substr(2,8);
 
-// ICE config
+// ICE servers
 const ICE_CONFIG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
 // Helper: get roomId from URL
@@ -136,16 +135,25 @@ function setupVideoSync() {
 }
 
 // 11) Members & Call
-function setupMembersAndCall() {
+async function setupMembersAndCall() {
   const memRef = ref(db, `rooms/${roomId}/members`);
-  set(ref(db, `rooms/${roomId}/members/${clientId}`), { user: nickname, muted: false });
+  // --- kiểm tra trùng nickname ---
+  const existing = (await get(memRef)).val() || {};
+  if (Object.values(existing).some(m => m.user === nickname)) {
+    alert('Nickname này đã có người sử dụng, chọn tên khác!');
+    return window.location.reload();
+  }
+  // --- thêm member ---
+  await set(ref(db, `rooms/${roomId}/members/${clientId}`), { user: nickname, muted: false });
 
+  // Kick listener
   onChildRemoved(memRef, snap => {
     if (snap.key === clientId) {
       alert('Bạn bị kick khỏi phòng!');
       window.location.reload();
     }
   });
+  // Mute listener
   onChildChanged(memRef, snap => {
     if (snap.key===clientId && localStream) {
       const muted = snap.val().muted;
@@ -153,6 +161,7 @@ function setupMembersAndCall() {
       btnMic.textContent = `Mic: ${muted?'Off':'On'}`;
     }
   });
+  // Render members list
   onValue(memRef, snap => {
     membersDiv.innerHTML = '';
     const data = snap.val()||{};
@@ -171,6 +180,7 @@ function setupMembersAndCall() {
     }
   });
 
+  // Signaling
   const sigRef = ref(db, `rooms/${roomId}/webrtc`);
   onChildAdded(sigRef, snap => handleSignal(snap.val()));
   onChildAdded(memRef, snap => {
@@ -205,7 +215,7 @@ function leaveCall() {
     audioEl.remove();
   }
   Object.keys(peers).forEach(k=>delete peers[k]);
-  localStream.getTracks().forEach(t=>t.stop());
+  localStream && localStream.getTracks().forEach(t=>t.stop());
   localStream = null;
   btnJoinCall.disabled = false;
   btnLeaveCall.disabled = true;
@@ -269,7 +279,7 @@ async function handleSignal({from,to,sdp,candidate}) {
   }
 }
 
-// 17) let go
+// 17) Auto-fill roomId
 window.addEventListener('load', () => {
   const rid = getRoomIdFromURL();
   if (rid) roomInput.value = rid;
