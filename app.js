@@ -1,7 +1,8 @@
 // 1) Import Firebase + WebRTC qua CDN
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import {
-  getDatabase, ref, set, push, onChildAdded, onValue, remove
+  getDatabase, ref, set, push, onChildAdded, onChildChanged,
+  onChildRemoved, onValue, remove
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
 import { getAnalytics }  from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
 
@@ -61,15 +62,13 @@ btnCreate.onclick = () => {
   if (!nickname) return alert('Nhập nickname!');
   roomId = Math.random().toString(36).substr(2, 8);
   history.replaceState(null, '', '?room=' + roomId);
-  // Đánh dấu bạn là chủ phòng
   isOwner = true;
-  // Ghi owner vào DB
   set(ref(db, `rooms/${roomId}/owner`), nickname)
     .then(() => enterRoom())
     .catch(console.error);
 };
 
-// Join phòng: đọc owner, so sánh với nickname
+// Join phòng: đọc owner để biết isOwner
 btnJoin.onclick = () => {
   nickname = nickInput.value.trim();
   const id = roomInput.value.trim();
@@ -87,7 +86,7 @@ btnJoin.onclick = () => {
   }, { onlyOnce: true });
 };
 
-// Vào Room: thiết lập chat, video, call
+// Vào Room: thiết lập chat, video, members, call
 function enterRoom() {
   lobby.style.display   = 'none';
   roomDiv.style.display = 'block';
@@ -136,11 +135,28 @@ function enterRoom() {
 
   // --- Members list & Kick/Mute ---
   const membersRef = ref(db, `rooms/${roomId}/members`);
+  // Khi join, thêm chính mình
   set(ref(db, `rooms/${roomId}/members/${clientId}`), {
     user: nickname,
     muted: false,
     joined: Date.now()
   });
+  // Kick: khi owner remove node, reload client
+  onChildRemoved(membersRef, snap => {
+    if (snap.key === clientId) {
+      alert('Bạn đã bị kick khỏi phòng!');
+      window.location.reload();
+    }
+  });
+  // Mute: khi flag muted của chính bạn thay đổi, bật/tắt mic
+  onChildChanged(membersRef, snap => {
+    if (snap.key === clientId && localStream) {
+      const muted = snap.val().muted;
+      localStream.getAudioTracks()[0].enabled = !muted;
+      btnMic.textContent = `Mic: ${muted ? 'Off' : 'On'}`;
+    }
+  });
+  // Build UI danh sách members
   onValue(membersRef, snap => {
     callMembersDiv.innerHTML = '';
     const data = snap.val() || {};
@@ -179,6 +195,7 @@ async function joinCall() {
   btnLeaveCall.disabled = false;
   callControls.style.display = 'block';
 
+  // Tạo offer tới mỗi peer đã join trước
   const membersSnap = await ref(db, `rooms/${roomId}/members`).get();
   const members = membersSnap.val() || {};
   for (const peerId of Object.keys(members)) {
@@ -187,7 +204,7 @@ async function joinCall() {
   }
 }
 
-// Leave Call: đóng kết nối
+// Leave Call: đóng tất cả kết nối
 function leaveCall() {
   Object.values(peers).forEach(p => {
     p.pc.close();
@@ -201,7 +218,7 @@ function leaveCall() {
   callControls.style.display = 'none';
 }
 
-// Mic on/off
+// Mic on/off local
 btnMic.onclick = () => {
   if (!localStream) return;
   const track = localStream.getAudioTracks()[0];
@@ -209,7 +226,7 @@ btnMic.onclick = () => {
   btnMic.textContent = `Mic: ${track.enabled ? 'On' : 'Off'}`;
 };
 
-// Speaker on/off
+// Speaker on/off remote
 btnSpeaker.onclick = () => {
   Object.values(peers).forEach(p => {
     p.audioEl.muted = !p.audioEl.muted;
@@ -218,14 +235,17 @@ btnSpeaker.onclick = () => {
   btnSpeaker.textContent = `Speaker: ${muted ? 'Off' : 'On'}`;
 };
 
-// Tạo RTCPeerConnection và handle Offer/Answer/ICE
+// Tạo RTCPeerConnection với STUN server, handle Offer/Answer/ICE
 function createPeerConnection(peerId, isOffer) {
   if (peers[peerId]) return;
-  const pc = new RTCPeerConnection();
+  const pc = new RTCPeerConnection({
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+  });
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
 
   const audioEl = document.createElement('audio');
   audioEl.autoplay = true;
+  audioEl.muted = false;  // đảm bảo không tắt
   pc.ontrack = ev => {
     audioEl.srcObject = ev.streams[0];
     audioEl.style.display = 'block';
