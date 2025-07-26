@@ -13,6 +13,9 @@
     }
     .participant { display:flex; justify-content:space-between; align-items:center; margin:.2rem 0; }
     .participant button { margin-left:.5rem; }
+    #audioStreams audio {
+      display:block; width:100%; margin-bottom:.5rem;
+    }
     input, button, select { padding:.5rem; margin:.2rem; }
     video { display:block; width:100%; margin-top:1rem; }
     .hidden { display:none; }
@@ -64,9 +67,13 @@
       <button id="btnSpeaker">Speaker: On</button>
     </div>
 
-    <!-- Call Members -->
+    <!-- Call Members List -->
     <h4>Người đang gọi</h4>
     <div id="callMembers"></div>
+
+    <!-- Audio Streams -->
+    <h4>Audio Streams</h4>
+    <div id="audioStreams"></div>
   </div>
 
   <script type="module" src="app.js"></script>
