@@ -299,7 +299,7 @@ async function handleSignal(msg) {
   }
 }
 
-// Auto điền room ID nếu URL có ?room=
+// part 3
 window.addEventListener('load', () => {
   const rid = getRoomIdFromURL();
   if (rid) roomInput.value = rid;
