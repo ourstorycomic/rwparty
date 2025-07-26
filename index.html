@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Watch Together</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: auto; padding: 1rem; }
+    #lobby, #room { margin-top: 2rem; }
+    #chat { 
+      height: 200px; 
+      border: 1px solid #ccc; 
+      overflow-y: auto; 
+      padding: .5rem; 
+      background: #f9f9f9;
+    }
+    #chat p { margin: .2rem 0; }
+    input, button { padding: .5rem; margin: .2rem; }
+    video { display: block; margin-top: 1rem; width: 100%; max-width: 100%; }
+  </style>
+</head>
+<body>
+
+  <h1>Xem Phim Cùng Nhau</h1>
+
+  <!-- Lobby: nhập nickname + create/join -->
+  <div id="lobby">
+    <input id="nickname" placeholder="Nhập nickname" />
+    <br/>
+    <button id="btnCreate">Tạo phòng</button>
+    <input id="roomIdInput" placeholder="Nhập mã phòng" />
+    <button id="btnJoin">Vào phòng</button>
+  </div>
+
+  <!-- Room: video + chat -->
+  <div id="room" style="display:none;">
+    <p>Phòng: <strong><span id="roomIdDisplay"></span></strong></p>
+
+    <video id="videoPlayer" controls>
+      <source src="movie.mp4" type="video/mp4">
+      Trình duyệt của bạn không hỗ trợ thẻ video.
+    </video>
+
+    <div id="chat"></div>
+    <input id="chatInput" placeholder="Gõ tin nhắn..." />
+    <button id="btnSend">Gửi</button>
+  </div>
+
+  <!-- Kết nối file logic chính -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
