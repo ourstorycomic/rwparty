@@ -1,14 +1,11 @@
-// File: assets/js/app.js
-// ======================
-
-// 1) Import Firebase SDK dưới dạng module:
+// 1) Import Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import { getDatabase, ref, set, push,
          onChildAdded, onValue, onChildRemoved,
          get, remove } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-database.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
 
-// 2) Cấu hình Firebase của bạn:
+// 2) Firebase config & init
 const firebaseConfig = {
   apiKey: "AIzaSyBvhRRIP3zyPL6htL2fgSAAhks5y6EJB7Y",
   authDomain: "rwparty-24391.firebaseapp.com",
@@ -19,13 +16,11 @@ const firebaseConfig = {
   appId: "1:281506397324:web:0c5af5bdbb7eeca0588fa9",
   measurementId: "G-HX95ZF61BE"
 };
+const fbApp = initializeApp(firebaseConfig);
+getAnalytics(fbApp);
+const db = getDatabase(fbApp);
 
-// 3) Khởi tạo Firebase & Database:
-const app = initializeApp(firebaseConfig);
-getAnalytics(app);
-const db = getDatabase(app);
-
-// 4) DOM & state
+// 3) DOM refs & state
 const E = id => document.getElementById(id);
 const lobby       = E('lobby'),
       roomDiv     = E('room'),
@@ -34,62 +29,79 @@ const lobby       = E('lobby'),
       btnCreate   = E('btnCreate'),
       btnJoin     = E('btnJoin'),
       roomDisp    = E('roomIdDisplay'),
-      playbackRate= E('playbackRate'),
       chat        = E('chat'),
       chatInput   = E('chatInput'),
       btnSend     = E('btnSend'),
-      membersDiv  = E('members');
+      membersDiv  = E('members'),
+      ownerCtrls  = E('ownerControls'),
+      playBtn     = E('playBtn'),
+      pauseBtn    = E('pauseBtn'),
+      seekInput   = E('seekInput'),
+      seekBtn     = E('seekBtn');
 
-const clientId = Math.random().toString(36).substr(2, 8);
 let nickname, roomId, isOwner = false;
+const clientId = Math.random().toString(36).substr(2,8);
 
-// 5) Create room
+// 4) Create room
 btnCreate.onclick = async () => {
   nickname = nickInput.value.trim();
-  if (!nickname) return alert('Nhập nickname');
-  roomId = Math.random().toString(36).substr(2, 8);
-  history.replaceState(null, null, '?room=' + roomId);
+  if (!nickname) return alert('Enter nickname');
+  roomId = Math.random().toString(36).substr(2,8);
+  history.replaceState(null,null, '?room='+roomId);
   isOwner = true;
   await remove(ref(db, `rooms/${roomId}`));
   await set(ref(db, `rooms/${roomId}/owner`), nickname);
   enterRoom();
 };
 
-// 6) Join room
+// 5) Join room
 btnJoin.onclick = async () => {
   nickname = nickInput.value.trim();
   const id = roomInput.value.trim();
-  if (!nickname || !id) return alert('Nhập nickname & mã phòng');
+  if (!nickname||!id) return alert('Enter nickname & room ID');
   roomId = id;
-  history.replaceState(null, null, '?room=' + roomId);
+  history.replaceState(null,null, '?room='+roomId);
   const snap = await get(ref(db, `rooms/${roomId}/owner`));
-  if (!snap.exists()) return alert('Phòng không tồn tại');
+  if (!snap.exists()) return alert('Room not found');
   isOwner = (snap.val() === nickname);
   enterRoom();
 };
 
-// 7) Hiển thị UI khi đã join/create
-function enterRoom() {
+// 6) Enter room UI + setup
+function enterRoom(){
   lobby.classList.add('d-none');
   roomDiv.classList.remove('d-none');
   roomDisp.textContent = roomId;
 
-  if (isOwner) {
-    playbackRate.classList.remove('d-none');
-    playbackRate.onchange = () =>
-      window.sharedVideo.setPlaybackRate(parseFloat(playbackRate.value));
+  // custom controls only for owner
+  const evtRef = ref(db, `rooms/${roomId}/video/events`);
+  if (isOwner){
+    ownerCtrls.classList.remove('d-none');
+    playBtn.onclick = () => {
+      window.sharedVideo.play();
+      push(evtRef, { type:'play',  user:nickname, time:window.sharedVideo.getCurrentTime() });
+    };
+    pauseBtn.onclick = () => {
+      window.sharedVideo.pause();
+      push(evtRef, { type:'pause', user:nickname, time:window.sharedVideo.getCurrentTime() });
+    };
+    seekBtn.onclick = () => {
+      const t = parseFloat(seekInput.value)||0;
+      window.sharedVideo.setCurrentTime(t);
+      push(evtRef, { type:'seek',  user:nickname, time:t });
+    };
   }
 
   setupChat();
-  setupVideoSync();
+  setupVideoSync(evtRef);
   setupMembers();
 }
 
-// 8) Chat
-function setupChat() {
+// 7) Chat logic
+function setupChat(){
   const chatRef = ref(db, `rooms/${roomId}/chat`);
-  onChildAdded(chatRef, snap => {
-    const { user, text } = snap.val();
+  onChildAdded(chatRef, snap=>{
+    const {user, text} = snap.val();
     const p = document.createElement('p');
     p.innerHTML = `<strong>${user}:</strong> ${text}`;
     chat.appendChild(p);
@@ -98,71 +110,57 @@ function setupChat() {
   btnSend.onclick = () => {
     const txt = chatInput.value.trim();
     if (!txt) return;
-    push(chatRef, { user: nickname, text: txt });
+    push(chatRef, { user:nickname, text:txt });
     chatInput.value = '';
   };
 }
 
-// 9) Video sync
-function setupVideoSync() {
-  const evtRef = ref(db, `rooms/${roomId}/video/events`);
+// 8) Video sync logic
+function setupVideoSync(evtRef){
   const player = window.sharedVideo;
-
-  onChildAdded(evtRef, snap => {
-    const { type, user, time } = snap.val();
-    if (user === nickname) return;
+  onChildAdded(evtRef, snap=>{
+    const {type, user, time} = snap.val();
+    if (user===nickname) return;
     player.setCurrentTime(time);
-    if (type === 'play') player.play();
-    if (type === 'pause') player.pause();
+    if(type==='play')  player.play();
+    if(type==='pause') player.pause();
   });
-
-  if (isOwner) {
-    player.on('play',  () =>
-      push(evtRef, { type: 'play',  user: nickname, time: player.getCurrentTime() }));
-    player.on('pause', () =>
-      push(evtRef, { type: 'pause', user: nickname, time: player.getCurrentTime() }));
-    player.on('seeked',() =>
-      push(evtRef, { type: 'seek',  user: nickname, time: player.getCurrentTime() }));
-  }
 }
 
-// 10) Members
-async function setupMembers() {
+// 9) Members list + kick
+async function setupMembers(){
   const memRef = ref(db, `rooms/${roomId}/members`);
-  const exist = (await get(memRef)).val() || {};
-  if (Object.values(exist).some(m => m.user === nickname)) {
-    alert('Nickname đã tồn tại'); return location.reload();
+  const exist = (await get(memRef)).val()||{};
+  if(Object.values(exist).some(m=>m.user===nickname)){
+    alert('Nickname exists'); return location.reload();
   }
-  await set(ref(db, `rooms/${roomId}/members/${clientId}`), { user: nickname });
-
-  onChildRemoved(memRef, snap => {
-    if (snap.key === clientId) {
-      alert('Bạn bị kick khỏi phòng');
-      location.reload();
+  await set(ref(db, `rooms/${roomId}/members/${clientId}`), { user:nickname });
+  onChildRemoved(memRef, snap=>{
+    if(snap.key===clientId){
+      alert('You were kicked'); location.reload();
     }
   });
-
-  onValue(memRef, snap => {
+  onValue(memRef, snap=>{
     membersDiv.innerHTML = '';
-    const data = snap.val() || {};
-    for (let [id, obj] of Object.entries(data)) {
-      const d = document.createElement('div');
-      d.className = 'list-group-item d-flex justify-content-between align-items-center';
-      d.textContent = obj.user + (id === clientId ? ' (Bạn)' : '');
-      if (isOwner && id !== clientId) {
+    const data = snap.val()||{};
+    for(const [id,obj] of Object.entries(data)){
+      const el = document.createElement('div');
+      el.className='list-group-item d-flex justify-content-between align-items-center';
+      el.textContent = obj.user + (id===clientId?' (You)':'');
+      if(isOwner && id!==clientId){
         const btn = document.createElement('button');
-        btn.className = 'btn btn-sm btn-danger';
-        btn.textContent = 'Kick';
-        btn.onclick = () => remove(ref(db, `rooms/${roomId}/members/${id}`));
-        d.appendChild(btn);
+        btn.className='btn btn-sm btn-danger';
+        btn.textContent='Kick';
+        btn.onclick = ()=> remove(ref(db, `rooms/${roomId}/members/${id}`));
+        el.appendChild(btn);
       }
-      membersDiv.appendChild(d);
+      membersDiv.appendChild(el);
     }
   });
 }
 
-// 11) Autofill room từ URL
-window.addEventListener('load', () => {
+// 10) Auto-fill room ID from URL
+window.addEventListener('load', ()=>{
   const rid = new URLSearchParams(location.search).get('room');
-  if (rid) roomInput.value = rid;
+  if(rid) roomInput.value = rid;
 });

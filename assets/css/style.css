@@ -44,44 +44,47 @@ img,
 	max-width: 100%;
 	transition: all 0.3s ease-out 0s;
 }
-      :root {
-        --bs-gray-400: #ced4da;
-        --bs-gray-500: #adb5bd;
-        --bs-gray-600: #6c757d;
-        --bs-gray-700: #495057;
-        --bs-gray-800: #343a40;
-        --bs-gray-900: #212529;
-      }
-      /* Áp dụng tông màu chủ đạo */
-      #watch-party {
-        background-color: var(--bs-gray-900);
-        color: #fff;
-      }
-      #chat {
-        background-color: var(--bs-gray-800);
-        color: #e9ecef;
-      }
-      .chat-area h5,
-      .members-area h5 {
-        color: var(--bs-gray-400);
-      }
-      .list-group-item {
-        background-color: var(--bs-gray-700);
-        border-color: var(--bs-gray-600);
-        color: #f8f9fa;
-      }
-      .btn-outline-primary {
-        color: var(--bs-gray-200);
-        border-color: var(--bs-gray-500);
-      }
-      .btn-outline-primary:hover {
-        background-color: var(--bs-gray-500);
-        color: #fff;
-      }
-	  #lobby .btn-sm {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.8rem;
-}
+    :root {
+      --bs-gray-400: #ced4da;
+      --bs-gray-500: #adb5bd;
+      --bs-gray-600: #6c757d;
+      --bs-gray-700: #495057;
+      --bs-gray-800: #343a40;
+      --bs-gray-900: #212529;
+    }
+    #watch-party {
+      background-color: var(--bs-gray-900);
+      color: #fff;
+    }
+    #chat {
+      background-color: var(--bs-gray-800);
+      color: #e9ecef;
+    }
+    .chat-area h5, .members-area h5 {
+      color: var(--bs-gray-400);
+    }
+    .list-group-item {
+      background-color: var(--bs-gray-700);
+      border-color: var(--bs-gray-600);
+      color: #f8f9fa;
+    }
+    .btn-outline-primary {
+      color: var(--bs-gray-200);
+      border-color: var(--bs-gray-500);
+    }
+    .btn-outline-primary:hover {
+      background-color: var(--bs-gray-500);
+      color: #fff;
+    }
+
+    /* Ẩn IndigoPlayer controls và vô hiệu hoá tương tác trực tiếp */
+    .indigo-player__controls,
+    .indigo-player__control {
+      display: none !important;
+    }
+    .indigo-player__video-container {
+      pointer-events: none;
+    }
 .center {
   display: block;
   margin-left: auto;
